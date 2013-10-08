@@ -3,8 +3,12 @@
 #define A_INT 0
 #define Z_INT 1
 #define _GCB(b) (control_bits & (1 << (b)))
-#define _CCB(b) (control_bits &= ~(1<<((b) & 0x01)));
-#define _SCB(b) (control_bits |= (1<<((b) & 0x01)));
+#define _CCB(b) (control_bits &= ~(1<<(b)));
+#define _SCB(b) (control_bits |= (1<<(b)));
+#define FIRE_COMMAND_ISSUED 0
+#define ISR_SET_AND_CALCUALTED 1
+#define RELEASE_ENABLE 2
+#define RELEASE_TRIGGERED 3
 /*
 Control Bits:
  0: Fire command issued
@@ -28,26 +32,20 @@ void fire(){
 void ISR_Z(){
   rpm=1/((millis()-period)/1000)/60;
   period=millis();
-  if(_GCB(1)){
+  if(_GCB(ISR_SET_AND_CALCULATED)){
     //Launch parameters are ready! Enable Release!
     ticks=0;
-    _SCB(2)
-    }
-    //We have a fire command! Attach the A_Interrupt!
-    if(_GCB(0)&&(!_GCB(1))){
-      attachInterrupt(A_INT,ISR_A,RISING);
-      releasetick=calcTick();
-      _SCB(1);
+    _SCB(RELEASE_ENABLE)
     }
 }
 void ISR_A(){
   ticks++;
-  if((ticks >= releasetick) && _GCB(2)){
+  if((ticks >= releasetick) && _GCB(RELEASE_ENABLE)){
     fire();
-    _SCB(3);
+    _SCB(RELEASE_TRIGGERED);
     detachInterrupt(A_INT);
-    _CCB(2);
-    _CCB(1);
+    _CCB(RELEASE_ENABLE);
+    _CCB(ISR_SET_AND_CALCULATED);
   }
 }
 
@@ -64,11 +62,17 @@ void loop(){
     SerComm.println(rpm);
     txtime=millis();
   }
-  if(SerComm.available()&&!_GCB(0)){
+  if(SerComm.available()&&!_GCB(FIRE_COMMAND_ISSUED)){
     if(SerComm.read()=='F'){
-      _SCB(0);
+      _SCB(FIRE_COMMAND_ISSUED);
     }
   }
+    //We have a fire command! Attach the A_Interrupt!
+    if(_GCB(FIRE_COMMAND_ISSUED)&&(!_GCB(ISR_SET_AND_CALCULATED))){
+      attachInterrupt(A_INT,ISR_A,RISING);
+      releasetick=calcTick();
+      _SCB(ISR_SET_AND_CALCULATED);
+    }
 }
 
 
