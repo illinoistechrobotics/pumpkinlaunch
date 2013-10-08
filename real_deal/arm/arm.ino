@@ -2,9 +2,9 @@
 #define TX_INT 50
 #define A_INT 0
 #define Z_INT 1
-#define _GCB(b) (control_bits & (1 << (b)))
-#define _CCB(b) (control_bits &= ~(1<<(b)));
-#define _SCB(b) (control_bits |= (1<<(b)));
+#define _GET_CONTROL_BIT(b) (control_bits & (1 << (b)))
+#define _CLEAR_CONTROL_BIT(b) (control_bits &= ~(1<<(b)));
+#define _SET_CONTROL_BIT(b) (control_bits |= (1<<(b)));
 #define FIRE_COMMAND_ISSUED 0
 #define ISR_SET_AND_CALCUALTED 1
 #define RELEASE_ENABLE 2
@@ -32,20 +32,20 @@ void fire(){
 void ISR_Z(){
 	mpr = millis() - period;
 	period = millis();
-	if(_GCB(ISR_SET_AND_CALCULATED)){
+	if(_GET_CONTROL_BIT(ISR_SET_AND_CALCULATED)){
 		//Launch parameters are ready! Enable Release!
 		ticks=0;
-		_SCB(RELEASE_ENABLE)
+		_SET_CONTROL_BIT(RELEASE_ENABLE)
 	}
 }
 void ISR_A(){
 	ticks++;
-	if((ticks >= releasetick) && _GCB(RELEASE_ENABLE)){
+	if((ticks >= releasetick) && _GET_CONTROL_BIT(RELEASE_ENABLE)){
 		fire();
-		_SCB(RELEASE_TRIGGERED);
+		_SET_CONTROL_BIT(RELEASE_TRIGGERED);
 		detachInterrupt(A_INT);
-		_CCB(RELEASE_ENABLE);
-		_CCB(ISR_SET_AND_CALCULATED);
+		_CLEAR_CONTROL_BIT(RELEASE_ENABLE);
+		_CLEAR_CONTROL_BIT(ISR_SET_AND_CALCULATED);
 	}
 }
 
@@ -56,25 +56,25 @@ void setup(){
 #endif
 }
 void loop(){
-	//rpm=1/((millis()-period)/1000)/60;
+	int rpm  = 60000 / mpr; // 60000 = 1000 milliseconds * 60 seconds
 	period=millis();
 	if((millis()-txtime)>TX_INT){
 		SerComm.print('S');
 		SerComm.write(control_bits);
-		//SerComm.println(rpm);
+		SerComm.println(rpm);
 		txtime=millis();
 	}
-	if(SerComm.available()&&!_GCB(FIRE_COMMAND_ISSUED)){
+	if(SerComm.available()&&!_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)){
 		if(SerComm.read()=='F'){
-			_SCB(FIRE_COMMAND_ISSUED);
+			_SET_CONTROL_BIT(FIRE_COMMAND_ISSUED);
 		}
 	}
 	//We have a fire command! Attach the A_Interrupt!
-	if(_GCB(FIRE_COMMAND_ISSUED)&&(!_GCB(ISR_SET_AND_CALCULATED))){
+	if(_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)&&(!_GET_CONTROL_BIT(ISR_SET_AND_CALCULATED))){
 		//calculate RPM here
 		releasetick=calcTick();
 		attachInterrupt(A_INT,ISR_A,RISING);
-		_SCB(ISR_SET_AND_CALCULATED);
+		_SET_CONTROL_BIT(ISR_SET_AND_CALCULATED);
 	}
 }
 
