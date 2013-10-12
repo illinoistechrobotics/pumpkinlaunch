@@ -2,6 +2,7 @@
 #define TX_INT 50
 #define A_INT 0
 #define Z_INT 1
+#define FIRE_PIN 5
 #define _GET_CONTROL_BIT(b) (control_bits & (1 << (b)))
 #define _CLEAR_CONTROL_BIT(b) (control_bits &= ~(1<<(b)));
 #define _SET_CONTROL_BIT(b) (control_bits |= (1<<(b)));
@@ -23,11 +24,11 @@ long period=millis(),txtime=millis();
 int mpr; //millis per revolution
 int calcTick(){
 	//Calculate and return tick at which release is to occur at 
-
+	//THIS IS FOR TESTING
+	return 250;
 }
 void fire(){
-	//stuff to actually fire goes here 
-
+	digitalWrite(FIRE_PIN,HIGH);
 }
 void ISR_Z(){
 	mpr = millis() - period;
@@ -44,23 +45,24 @@ void ISR_A(){
 		fire();
 		_SET_CONTROL_BIT(RELEASE_TRIGGERED);
 		detachInterrupt(A_INT);
+		SerComm.begin(56700);
 		_CLEAR_CONTROL_BIT(RELEASE_ENABLE);
 		_CLEAR_CONTROL_BIT(ISR_SET_AND_CALCULATED);
 	}
 }
-
 void setup(){
 	attachInterrupt(Z_INT,ISR_Z,RISING);
-#ifdef DEBUG
 	SerComm.begin(57600);
-#endif
+	digitalWrite(FIRE_PIN,LOW);
+	pinMode(FIRE_PIN,OUTPUT);
 }
 void loop(){
 	int rpm  = 60000 / mpr; // 60000 = 1000 milliseconds * 60 seconds
 	period=millis();
 	if((millis()-txtime)>TX_INT){
 		SerComm.print('S');
-		SerComm.write(control_bits);
+		SerComm.print(control_bits,BIN);
+		SerComm.print(" R ");
 		SerComm.println(rpm);
 		txtime=millis();
 	}
@@ -73,6 +75,8 @@ void loop(){
 	if(_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)&&(!_GET_CONTROL_BIT(ISR_SET_AND_CALCULATED))){
 		//calculate RPM here
 		releasetick=calcTick();
+		SerComm.println(releasetick);
+		SerComm.end();
 		attachInterrupt(A_INT,ISR_A,RISING);
 		_SET_CONTROL_BIT(ISR_SET_AND_CALCULATED);
 	}
