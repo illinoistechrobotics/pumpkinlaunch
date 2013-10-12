@@ -7,7 +7,7 @@
 #define _CLEAR_CONTROL_BIT(b) (control_bits &= ~(1<<(b)));
 #define _SET_CONTROL_BIT(b) (control_bits |= (1<<(b)));
 #define FIRE_COMMAND_ISSUED 0
-#define ISR_SET_AND_CALCUALTED 1
+#define ISR_SET_AND_CALCULATED 1
 #define RELEASE_ENABLE 2
 #define RELEASE_TRIGGERED 3
 /*
@@ -67,7 +67,7 @@ void loop(){
 		txtime=millis();
 	}
 	if(SerComm.available()&&!_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)){
-		if(SerComm.read()=='F'){
+		if(SerComm.read()=='*'){
 			_SET_CONTROL_BIT(FIRE_COMMAND_ISSUED);
 		}
 	}
