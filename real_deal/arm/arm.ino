@@ -1,5 +1,5 @@
 #define SerComm Serial1
-#define TX_INT 50
+#define TX_INT 100
 #define A_INT 0
 #define Z_INT 1
 #define FIRE_PIN 5
@@ -45,14 +45,14 @@ void ISR_A(){
 		fire();
 		_SET_CONTROL_BIT(RELEASE_TRIGGERED);
 		detachInterrupt(A_INT);
-		SerComm.begin(56700);
+		SerComm.begin(9600);
 		_CLEAR_CONTROL_BIT(RELEASE_ENABLE);
 		_CLEAR_CONTROL_BIT(ISR_SET_AND_CALCULATED);
 	}
 }
 void setup(){
 	attachInterrupt(Z_INT,ISR_Z,RISING);
-	SerComm.begin(57600);
+	SerComm.begin(9600);
 	digitalWrite(FIRE_PIN,LOW);
 	pinMode(FIRE_PIN,OUTPUT);
 }
@@ -64,6 +64,7 @@ void loop(){
 		SerComm.print(control_bits,BIN);
 		SerComm.print(" R ");
 		SerComm.println(rpm);
+                SerComm.print("\r\n");
 		txtime=millis();
 	}
 	if(SerComm.available()&&!_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)){
@@ -76,6 +77,7 @@ void loop(){
 		//calculate RPM here
 		releasetick=calcTick();
 		SerComm.println(releasetick);
+                SerComm.print("\r\n");
 		SerComm.end();
 		attachInterrupt(A_INT,ISR_A,RISING);
 		_SET_CONTROL_BIT(ISR_SET_AND_CALCULATED);
