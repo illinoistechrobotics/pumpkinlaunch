@@ -67,7 +67,7 @@ void loop(){
 		txtime=millis();
 	}
 	if(SerComm.available()&&!_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)){
-		if(SerComm.read()=='*'){
+		if(SerComm.read()=='|'){
 			_SET_CONTROL_BIT(FIRE_COMMAND_ISSUED);
 		}
 	}
