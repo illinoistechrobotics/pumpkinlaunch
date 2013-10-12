@@ -18,10 +18,10 @@
 3: Release mechanism triggered
 
  */
-uint8_t control_bits=0;
-uint16_t ticks,releasetick;
-long period=millis(),txtime=millis();
-int mpr; //millis per revolution
+volatile uint8_t control_bits=0;
+volatile uint16_t ticks,releasetick;
+volatile unsigned long period=0,txtime=0;
+volatile unsigned long mpr; //millis per revolution
 int calcTick(){
 	//Calculate and return tick at which release is to occur at 
 	//THIS IS FOR TESTING
@@ -58,7 +58,6 @@ void setup(){
 }
 void loop(){
 	int rpm  = 60000 / mpr; // 60000 = 1000 milliseconds * 60 seconds
-	period=millis();
 	if((millis()-txtime)>TX_INT){
 		SerComm.print('S');
 		SerComm.print(control_bits,BIN);
