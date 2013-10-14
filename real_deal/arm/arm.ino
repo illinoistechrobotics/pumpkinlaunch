@@ -24,8 +24,7 @@ volatile unsigned long period=0,txtime=0;
 volatile unsigned long mpr; //millis per revolution
 int calcTick(){
 	//Calculate and return tick at which release is to occur at 
-	//THIS IS FOR TESTING
-	return 250;
+	return 210; //- 1/10 * rpm
 }
 void fire(){
 	digitalWrite(FIRE_PIN,HIGH);
