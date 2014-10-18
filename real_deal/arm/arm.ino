@@ -1,4 +1,4 @@
-#define SerComm Serial2
+#define SerComm Serial
 #define TX_INT 100
 #define A_INT 0
 #define Z_INT 1
