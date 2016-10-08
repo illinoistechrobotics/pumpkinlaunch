@@ -22,9 +22,11 @@ volatile uint8_t control_bits=0;
 volatile uint16_t ticks,releasetick;
 volatile unsigned long period=0,txtime=0;
 volatile unsigned long mpr; //millis per revolution
+volatile float A, B;
 int calcTick(){
 	//Calculate and return tick at which release is to occur at 
-	return 210; //- 1/10 * rpm
+	//return 210; //- 1/10 * rpm
+        return 1;
 }
 void fire(){
 	digitalWrite(FIRE_PIN,HIGH);
@@ -50,10 +52,30 @@ void ISR_A(){
 	}
 }
 void setup(){
+        int go = 0;
+        char inc;
 	attachInterrupt(Z_INT,ISR_Z,RISING);
 	SerComm.begin(9600);
 	digitalWrite(FIRE_PIN,LOW);
 	pinMode(FIRE_PIN,OUTPUT);
+        //Wait for a return 
+        while(go==0){
+          if(SerComm.available()){
+            inc=SerComm.read();
+            if(inc == '\n'){
+               go=1;
+            }
+          }
+        }
+        //Print prompt
+        SerComm.println("Tick = A * RPM + B");
+        SerComm.print("A=");
+        A=SerComm.parseFloat();
+        SerComm.println();
+        SerComm.print("B=");
+        B=SerComm.parseFloat();
+        
+             
 }
 void loop(){
 	int rpm  = 60000 / mpr; // 60000 = 1000 milliseconds * 60 seconds
