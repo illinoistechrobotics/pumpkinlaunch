@@ -14,6 +14,7 @@
 //In case a tick is missed, still launch accurately
 #define ENCODER_TICKS 499
 /*
+A=-1, B=63 ?
    Control Bits:
 0: Fire command issued
 1: ISR_A registration and calculations confirmed
@@ -29,7 +30,8 @@ volatile float A, B;
 int calcTick(int r){
 	//Calculate and return tick at which release is to occur at 
 	//return 210; //- 1/10 * rpm
-        return (int)(A*r + B) % ENCODER_TICKS;
+        int tick = (int)(A*r + B) % ENCODER_TICKS;
+        return tick >= 0 ? tick : tick + ENCODER_TICKS;
 }
 void fire(){
 	digitalWrite(FIRE_PIN,HIGH);
