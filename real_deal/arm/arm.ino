@@ -10,6 +10,8 @@
 #define ISR_SET_AND_CALCULATED 1
 #define RELEASE_ENABLE 2
 #define RELEASE_TRIGGERED 3
+//In case a tick is missed, still launch accurately
+#define ENCODER_TICKS 499
 /*
    Control Bits:
 0: Fire command issued
@@ -21,10 +23,12 @@
 volatile uint8_t control_bits=0;
 volatile uint16_t ticks,releasetick;
 volatile unsigned long period=0,txtime=0;
-volatile unsigned long mpr; //millis per revolution
-int calcTick(){
+volatile unsigned long mpr=60000; //millis per revolution
+volatile float A, B;
+int calcTick(int r){
 	//Calculate and return tick at which release is to occur at 
-	return 210; //- 1/10 * rpm
+	//return 210; //- 1/10 * rpm
+        return (int)(A*r + B) % ENCODER_TICKS;
 }
 void fire(){
 	digitalWrite(FIRE_PIN,HIGH);
@@ -50,10 +54,37 @@ void ISR_A(){
 	}
 }
 void setup(){
-	attachInterrupt(Z_INT,ISR_Z,RISING);
+        int go = 0;
+        char inc;
 	SerComm.begin(9600);
 	digitalWrite(FIRE_PIN,LOW);
 	pinMode(FIRE_PIN,OUTPUT);
+        //Wait for a return 
+        while(go==0){
+          if(SerComm.available()){
+            inc=SerComm.read();
+            if(inc == '\n'){
+               go=1;
+            }
+          }
+        }
+        //Print prompt
+        SerComm.setTimeout(0xffffffff);
+        SerComm.println("ReleaseTick = A * RPM + B");
+        SerComm.print("A=");
+        A=SerComm.parseFloat();
+        SerComm.println();
+        SerComm.print("B=");
+        B=SerComm.parseFloat();
+        SerComm.println();
+        SerComm.print("ReleaseTick = ");
+        SerComm.print(A);
+        SerComm.print(" * RPM + ");
+        SerComm.println(B);
+        delay(2000);
+        
+        attachInterrupt(Z_INT,ISR_Z,RISING); 
+             
 }
 void loop(){
 	int rpm  = 60000 / mpr; // 60000 = 1000 milliseconds * 60 seconds
@@ -73,7 +104,7 @@ void loop(){
 	//We have a fire command! Attach the A_Interrupt!
 	if(_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)&&(!_GET_CONTROL_BIT(ISR_SET_AND_CALCULATED))){
 		//calculate RPM here
-		releasetick=calcTick();
+		releasetick=calcTick(rpm);
 		SerComm.println(releasetick);
                 SerComm.print("\r\n");
 		SerComm.end();
