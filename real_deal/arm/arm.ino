@@ -1,3 +1,4 @@
+#include <util/atomic.h>
 #define SerComm Serial
 #define TX_INT 100
 #define A_INT 0
@@ -23,7 +24,7 @@
 volatile uint8_t control_bits=0;
 volatile uint16_t ticks,releasetick;
 volatile unsigned long period=0,txtime=0;
-volatile unsigned long mpr=60000; //millis per revolution
+volatile unsigned int mpr=60000; //millis per revolution, uint is 16 bits
 volatile float A, B;
 int calcTick(int r){
 	//Calculate and return tick at which release is to occur at 
@@ -87,13 +88,22 @@ void setup(){
              
 }
 void loop(){
-	int rpm  = 60000 / mpr; // 60000 = 1000 milliseconds * 60 seconds
+	unsigned int rpm;
+	// 60000 = 1000 milliseconds * 60 seconds.
+	// Read the volatile value atomically
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+    rpm=mpr;
+  }
+
+  //Then divide
+  rpm = 60000/rpm;
+
 	if((millis()-txtime)>TX_INT){
 		SerComm.print('S');
 		SerComm.print(control_bits,BIN);
 		SerComm.print(" R ");
 		SerComm.println(rpm);
-                SerComm.print("\r\n");
+		SerComm.print("\r\n");
 		txtime=millis();
 	}
 	if(SerComm.available()&&!_GET_CONTROL_BIT(FIRE_COMMAND_ISSUED)){
@@ -106,7 +116,7 @@ void loop(){
 		//calculate RPM here
 		releasetick=calcTick(rpm);
 		SerComm.println(releasetick);
-                SerComm.print("\r\n");
+		SerComm.print("\r\n");
 		SerComm.end();
 		attachInterrupt(A_INT,ISR_A,RISING);
 		_SET_CONTROL_BIT(ISR_SET_AND_CALCULATED);
