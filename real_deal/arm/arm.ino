@@ -14,12 +14,12 @@
 //In case a tick is missed, still launch accurately
 #define ENCODER_TICKS 499
 /*
-A=-1, B=63 ?
-   Control Bits:
-0: Fire command issued
-1: ISR_A registration and calculations confirmed
-2: Release enable
-3: Release mechanism triggered
+INITIAL LAUNCH PARAMETERS: A=-1, B=63
+Control Bits:
+    0: Fire command issued
+    1: ISR_A registration and calculations confirmed
+    2: Release enable
+    3: Release mechanism triggered
 
  */
 volatile uint8_t control_bits=0;
@@ -29,7 +29,7 @@ volatile unsigned int mpr=60000; //millis per revolution, uint is 16 bits
 volatile float A, B;
 int calcTick(int r){
 	//Calculate and return tick at which release is to occur at 
-	//return 210; //- 1/10 * rpm
+        //Perform operations modulo the number of ticks so that the relaeas tick will always be in the range 0 - ENCODER_TICKS
         int tick = (int)(A*r + B) % ENCODER_TICKS;
         return tick >= 0 ? tick : tick + ENCODER_TICKS;
 }
